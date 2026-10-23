@@ -1,6 +1,6 @@
 # qq-agent-heybox-reader
 
-一个轻量 QQ-agent Skill：读小黑盒帖子，让机器人理解内容再参与讨论。MIT，Node.js 20+，无需浏览器、Python、数据库或本地模型。当前版本 0.2.0。
+一个轻量 QQ-agent Skill：读小黑盒帖子，让机器人理解内容再参与讨论。MIT，Node.js 20+，无需浏览器、Python、数据库或本地模型。当前版本 0.2.1。
 
 源码：https://github.com/Walvez/qq-agent-heybox-reader
 
@@ -66,7 +66,7 @@ npm run probe -- 'https://www.xiaoheihe.cn/app/bbs/link/帖子ID'
 
 ## 登录与回复（0.2）
 
-工具：`heybox-reader__account` 检查登录，`heybox-reader__draft_reply` 准备草稿，`heybox-reader__publish_reply` 发布。后三者默认关闭，管理员可单独启用。发布还需要设置 `allowPublish=true`；这是允许模型使用该账号公开发评的开关，不仅是“已登录”。不开此开关也可以阅读、验证登录及准备草稿。
+工具：`heybox-reader__account` 检查登录，`heybox-reader__draft_reply` 准备草稿，`heybox-reader__publish_reply` 发布。登录检查与草稿默认启用，发布工具默认关闭；管理员可单独调整。发布还需要设置 `allowPublish=true`；这是允许模型使用该账号公开发评的开关，不仅是“已登录”。不开此开关也可以阅读、验证登录及准备草稿。
 
 草稿显示账号、目标帖子、正文、replyId/rootId和内容hash，30分钟有效。发布工具只接收草稿ID/hash，不接收临时改写的正文。楼中楼ID从读取评论结果获取。成功必须有commentId回执；网络超时或无回执标为unknown，不能自动重试或声称成功。
 

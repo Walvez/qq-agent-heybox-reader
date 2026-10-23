@@ -9,10 +9,10 @@ export function setup(api){
   config=api.config;reader=new Reader({fetch:api.fetch});
   const credential=()=>config().cookie||process.env.HEYBOX_COOKIE||'';
   const result=x=>({content:JSON.stringify(x)});
-  api.registerTool({id:'account',name:'检查小黑盒登录',category:'web',defaultEnabled:false,
+  api.registerTool({id:'account',name:'检查小黑盒登录',category:'web',defaultEnabled:true,
     description:'管理员询问小黑盒登录是否有效时使用。只返回账号和评论权限，不返回Cookie。',parameters:{type:'object',properties:{},additionalProperties:false},
     async execute(){try{return result(await new Account(api.fetch).status(credential()));}catch{return {isError:true,content:'登录检查失败，凭据可能过期或网络不可用。'};}}});
-  api.registerTool({id:'draft_reply',name:'拟小黑盒回复草稿',category:'web',defaultEnabled:false,
+  api.registerTool({id:'draft_reply',name:'拟小黑盒回复草稿',category:'web',defaultEnabled:true,
     description:'需要回复小黑盒帖子时，准备可供管理员确认的草稿；不会发送。必须展示账号、帖子链接、回复目标和原文。楼中楼需使用读取结果中的commentId和rootId。',
     parameters:{type:'object',properties:{url:{type:'string'},text:{type:'string',maxLength:2000},replyId:{type:'string'},rootId:{type:'string'}},required:['url','text'],additionalProperties:false},
     async execute(ctx,args){try{const base=process.env.HEYBOX_STATE_DIR||(process.env.QQ_AGENT_DATA_DIR?path.join(process.env.QQ_AGENT_DATA_DIR,'heybox-reader'):null);
