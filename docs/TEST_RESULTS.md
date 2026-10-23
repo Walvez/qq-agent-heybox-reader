@@ -18,3 +18,7 @@
 当前18项单元测试全部通过，包括凭据白名单和脱敏、短期pkey内存续接、缺失登录/无权限、草稿零发送、发布开关、精确表单、楼中楼、回执、重启后防重、超时未知状态、错hash/账号变化/过期拒绝。两种真实宿主加载4个工具成功。
 
 发布格式依据官方网页当前公开JS：safe-route-xmtuYKc5.js 的 /bbs/app/comment/create；index-DZNUuPXv.js 的 is_cy/link_id/reply_id/root_id/text 表单和result.comment回执；主bundle的restore_login流程。只研究接口，不复制官方bundle到项目。真实发布尚未验证，不把模拟成功写成实发成功。
+
+## v0.2.1发布验证
+
+已公开GitHub并发布v0.2.1；Actions的Node20/22/24全部通过。Linux服务器18项单元、帖子读取、登录和评论权限验证成功。维护者实例启用阅读/登录检查/草稿，发布保持关闭；真实评论提交仍未验证。
