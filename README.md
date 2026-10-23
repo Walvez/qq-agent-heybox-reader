@@ -1,6 +1,8 @@
 # qq-agent-heybox-reader
 
-一个轻量 QQ-agent Skill：读小黑盒帖子，让机器人理解内容再参与讨论。MIT，Node.js 20+，无需浏览器、Python、数据库或本地模型。当前为 0.2.0 候选版，尚未公开发布。
+一个轻量 QQ-agent Skill：读小黑盒帖子，让机器人理解内容再参与讨论。MIT，Node.js 20+，无需浏览器、Python、数据库或本地模型。当前版本 0.2.0。
+
+源码：https://github.com/Walvez/qq-agent-heybox-reader
 
 ## 能做什么
 
@@ -12,7 +14,7 @@
 
 ## 安装
 
-在 QQ-agent 根目录的 `skills/heybox-reader/` 放入本项目完整文件（不是符号链接；部分加载器跳过符号链接目录），然后：
+可在 QQ-agent 根目录运行 `git clone https://github.com/Walvez/qq-agent-heybox-reader.git skills/heybox-reader`，或在 `skills/heybox-reader/` 放入本项目完整文件（不是符号链接；部分加载器跳过符号链接目录），然后：
 
 ```sh
 cd skills/heybox-reader
