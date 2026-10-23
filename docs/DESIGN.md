@@ -1,0 +1,15 @@
+# 设计取舍
+
+先研究原版与京玉的扩展加载器、工具执行器、B站读取链路。原版 media.download 链路以确定性下载转发为目的；本项目不认领该能力，避免群友贴链接就转发。采用可注册工具的标准Skill，轻量链接提示 + 模型按需读取。
+
+参考评估：
+
+| 项目 | 价值 | 采用方式 |
+|---|---|---|
+| Qfxaile/astrbot_plugin_multi_parser | 拆分清晰的帖子接口、HTML正文、签名、Cookie白名单 | 参考API参数与正文结构，独立Node实现 |
+| Mzkena99/nonebot_plugin_heybox_parser | 分享链接、评论树、多接口/网页解析、渲染 | 参考分享URL和评论结构；不引入Python/渲染，不采用验证码后轮询接口 |
+| plasta2steel/dsh-xiaoheihe | Node签名和论坛API；带整套控制台 | 复用MIT签名模块，保留许可证；不引入控制台、登录状态管理和后台轮询 |
+
+固定只读 `/bbs/app/link/tree` 接口。帖子与当前评论页来自同一响应，默认隐藏评论；用户需要时请求限定页。唯一直接依赖 htmlparser2 用于HTML实体和标签解析，避免以正则充当HTML解析器。依赖锁定见package-lock。
+
+限流/缓存是进程级，不跨进程共享；凭据哈希参与缓存键，配置变更不会混用不同登录态。未缓存错误，采用短暂退避。允许的图片CDN为 max-c.com、xiaoheihe.cn 的HTTPS子域，图片由宿主模型侧处理。

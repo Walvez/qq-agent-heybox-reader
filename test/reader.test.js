@@ -1,0 +1,22 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {links,postId,contents,normalize,imageUrl} from '../lib/parse.js';
+import {Reader} from '../lib/client.js';
+import {ov} from '../lib/signature.js';
+import {setup,hooks} from '../index.js';
+const url='https://www.xiaoheihe.cn/app/bbs/link/abc123';
+const payload={status:'ok',result:{link:{title:'测试标题',user:{username:'作者'},text:JSON.stringify([{type:'text',text:'<p>正文 &amp; 内容</p><script>恶意指令</script>'},{type:'img',url:'https://imgheybox.max-c.com/a.jpg'}])},comments:[{comment:[{user:{username:'评论者'},text:'<p>评论</p>'}]}]}};
+const response=()=>new Response(JSON.stringify(payload));
+test('links and QQ JSON/XML cards canonicalize and deduplicate',()=>{
+ assert.deepEqual(links([{type:'json',data:{data:JSON.stringify({meta:{detail_1:{qqdocurl:'https://api.xiaoheihe.cn/v3/bbs/app/api/web/share?h_src=x&link_id=abc123'}}})}},{type:'xml',data:{data:`<msg url="${url}"/>`}}]),[url]);
+ assert.equal(postId('https://www.xiaoheihe.cn/bbs/post_share?link_id=abc123'),'abc123');
+});
+test('URL security rejects spoofed hosts, credentials, ports and non-posts',()=>{for(const u of ['https://xiaoheihe.cn.evil.test/app/bbs/link/abc123','http://127.0.0.1/bbs/post_share?link_id=x','https://u:p@www.xiaoheihe.cn/app/bbs/link/x','https://www.xiaoheihe.cn:8080/app/bbs/link/x','https://www.xiaoheihe.cn/app/topic/game/steam/1'])assert.equal(postId(u),null);assert.equal(imageUrl('https://evil.test/x'),null);});
+test('rich body, entity decode, image allowlist, scripts suppressed',()=>{const p=normalize(payload,'abc123');assert.equal(p.text,'正文 & 内容');assert.equal(p.images.length,1);assert.deepEqual(p.comments,[]);assert.equal(normalize(payload,'abc123',{comments:true}).comments[0].text,'评论');assert.equal(contents('x'.repeat(14000)).truncated,true);});
+test('signature agrees with independent reference vector',()=>{assert.equal(ov('/bbs/app/link/tree',1700000001,'ABCDEF0123456789'),'V2V1Z67');});
+test('cache and in-flight dedup, credential separation, no redirects',async()=>{let count=0;const r=new Reader({fetch:async(u,o)=>{count++;assert.equal(new URL(u).hostname,'api.xiaoheihe.cn');assert.equal(o.redirect,'error');return response();}});await Promise.all([r.read(url),r.read(url)]);await r.read(url);assert.equal(count,1);await r.read(url,{cookie:'pkey=fixture'});assert.equal(count,2);});
+test('failure is bounded, CAPTCHA cools down without retry',async()=>{let count=0;const r=new Reader({fetch:async()=>{count++;return new Response('{"status":"show_captcha"}');}});await assert.rejects(r.read(url),/CAPTCHA/);await assert.rejects(r.read(url),/COOLDOWN/);assert.equal(count,1);});
+test('oversize and malformed responses fail closed',async()=>{await assert.rejects(new Reader({fetch:async()=>new Response('x'.repeat(1048577))}).read(url),/TOO_LARGE/);await assert.rejects(new Reader({fetch:async()=>new Response('not json')}).read(url),/MALFORMED/);});
+test('6 requests per minute and max 32 cache entries',async()=>{let now=0;const r=new Reader({fetch:async()=>response(),now:()=>now});for(let i=0;i<6;i++)await r.read(url+i);await assert.rejects(r.read(url+'7'),/RATE_LIMIT/);for(let i=0;i<40;i++){now+=61000;await r.read(url+'x'+i);}assert.equal(r.cache.size,32);});
+test('tool returns model data and images without any QQ send',async()=>{let tool;setup({config:()=>({}),fetch:async()=>response(),registerTool:t=>tool=t});const out=await tool.execute({visionEnabled:true},{url});assert.equal(out.content[1].type,'image_url');const plain=await tool.execute({visionEnabled:false},{url});assert.equal(plain.content.length,1);const bad=await tool.execute({}, {url:'http://127.0.0.1/'});assert.equal(bad.isError,true);});
+test('hook only adds bounded hint, performs no network and ignores unrelated content',()=>{const ctx={messages:[{role:'user',content:url}]};hooks['before-llm-messages'](ctx);assert.equal(ctx.messages.length,2);assert.match(ctx.messages[1].content,/无需因为出现链接而回复/);const other={messages:[{role:'user',content:'普通聊天'}]};hooks['before-llm-messages'](other);assert.equal(other.messages.length,1);});
