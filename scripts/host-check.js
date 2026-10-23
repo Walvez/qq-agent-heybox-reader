@@ -17,5 +17,6 @@ try{
  assert.equal(res.failed.length,0,JSON.stringify(res.failed));
  const tool=registry.listTools({includeUnauthorized:true}).find(t=>(t.id||t.name)==='heybox-reader__read');assert.ok(tool);
  const bad=await tool.execute({visionEnabled:true},{url:'https://evil.test'});assert.equal(bad.isError,true);
- console.log(JSON.stringify({loaded:true,tool:tool.id,invalidInputHandled:true}));
+ const all=registry.listTools({includeUnauthorized:true});for(const id of ['account','draft_reply','publish_reply'])assert(all.some(t=>(t.id||t.name)==='heybox-reader__'+id));
+ console.log(JSON.stringify({loaded:true,tools:4,invalidInputHandled:true}));
 }finally{fs.rmSync(root,{recursive:true,force:true});}

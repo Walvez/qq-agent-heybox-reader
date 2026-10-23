@@ -1,9 +1,29 @@
+import path from 'node:path';
+import { Account } from './lib/auth.js';
+import { Replies } from './lib/replies.js';
 import { Reader } from './lib/client.js';
 import { links } from './lib/parse.js';
 let reader,config=()=>({});
 const errors={INVALID_URL:'没有找到受支持的小黑盒帖子链接，请提供原始帖子或分享链接。',INVALID_PAGE:'评论页码应为1至5。',CAPTCHA:'小黑盒要求人机验证，已暂停请求；不要假装读到了内容。',AUTH:'小黑盒要求登录，请管理员配置有效 Cookie。',RATE_LIMIT:'读取频率已达上限，稍后再试。',COOLDOWN:'接口处于短暂退避期，稍后再试。',INVALID_COOKIE:'Cookie 配置格式无效，请管理员检查。'};
 export function setup(api){
   config=api.config;reader=new Reader({fetch:api.fetch});
+  const credential=()=>config().cookie||process.env.HEYBOX_COOKIE||'';
+  const result=x=>({content:JSON.stringify(x)});
+  api.registerTool({id:'account',name:'检查小黑盒登录',category:'web',defaultEnabled:false,
+    description:'管理员询问小黑盒登录是否有效时使用。只返回账号和评论权限，不返回Cookie。',parameters:{type:'object',properties:{},additionalProperties:false},
+    async execute(){try{return result(await new Account(api.fetch).status(credential()));}catch{return {isError:true,content:'登录检查失败，凭据可能过期或网络不可用。'};}}});
+  api.registerTool({id:'draft_reply',name:'拟小黑盒回复草稿',category:'web',defaultEnabled:false,
+    description:'需要回复小黑盒帖子时，准备可供管理员确认的草稿；不会发送。必须展示账号、帖子链接、回复目标和原文。楼中楼需使用读取结果中的commentId和rootId。',
+    parameters:{type:'object',properties:{url:{type:'string'},text:{type:'string',maxLength:2000},replyId:{type:'string'},rootId:{type:'string'}},required:['url','text'],additionalProperties:false},
+    async execute(ctx,args){try{const base=process.env.HEYBOX_STATE_DIR||(process.env.QQ_AGENT_DATA_DIR?path.join(process.env.QQ_AGENT_DATA_DIR,'heybox-reader'):null);
+      const r=new Replies({directory:base,fetch:api.fetch});return result({...await r.prepare({...args,url:links(args.url)[0]},credential()),notice:'未发送。请管理员核对后在本地确认，不要声称已经回复。'});
+    }catch(e){return {isError:true,content:'草稿准备失败：'+(['AUTH','REPLY_FORBIDDEN','REPLY_STORAGE_REQUIRED','INVALID_REPLY','INVALID_REPLY_TARGET','DRAFT_LIMIT'].includes(e.message)?e.message:'接口或输入不可用')};}}});
+  api.registerTool({id:'publish_reply',name:'发布小黑盒回复',category:'web',sideEffect:'write',defaultEnabled:false,
+    description:'把已准备的草稿发布到小黑盒。仅管理员启用允许发布后使用；发送前应核对账号、帖子和正文。传草稿ID和hash，禁止修改草稿原文；未知结果不得重试。',
+    parameters:{type:'object',properties:{draftId:{type:'string'},hash:{type:'string'}},required:['draftId','hash'],additionalProperties:false},
+    async execute(ctx,args){try{const base=process.env.HEYBOX_STATE_DIR||(process.env.QQ_AGENT_DATA_DIR?path.join(process.env.QQ_AGENT_DATA_DIR,'heybox-reader'):null);
+      return result(await new Replies({directory:base,fetch:api.fetch}).send(args.draftId,args.hash,credential(),{enabled:config().allowPublish===true}));
+    }catch(e){const code=['REPLY_DISABLED','SEND_UNKNOWN','REPLY_BUSY','REPLY_LIMIT','INVALID_DRAFT','ACCOUNT_CHANGED','AUTH','CAPTCHA','REPLY_FORBIDDEN'].includes(e.message)?e.message:'FAILED';return {isError:true,content:'发布结果：'+code+'。未确认成功就不能声称已回复；UNKNOWN时不要再次发送，请人工核对网页。'};}}});
   api.registerTool({id:'read',name:'读取小黑盒帖子',category:'web',description:'群友发小黑盒帖子链接或QQ分享卡片、需要了解内容再讨论时调用。输入原链接或整张卡片JSON。默认只读帖子；明确需要评论时 comments=true。只返回资料，不发QQ消息。',parameters:{type:'object',properties:{url:{type:'string',description:'帖子URL或QQ分享卡片JSON'},comments:{type:'boolean',description:'是否读取当前页评论，默认false'},page:{type:'integer',minimum:1,maximum:5}},required:['url'],additionalProperties:false},
     async execute(ctx,args){
       try{

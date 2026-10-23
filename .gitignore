@@ -5,3 +5,6 @@ node_modules/
 .DS_Store
 data/
 coverage/
+*.cookie
+*auth-result*.json
+heybox-state/

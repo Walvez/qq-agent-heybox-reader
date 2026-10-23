@@ -10,6 +10,8 @@
 | Mzkena99/nonebot_plugin_heybox_parser | 分享链接、评论树、多接口/网页解析、渲染 | 参考分享URL和评论结构；不引入Python/渲染，不采用验证码后轮询接口 |
 | plasta2steel/dsh-xiaoheihe | Node签名和论坛API；带整套控制台 | 复用MIT签名模块，保留许可证；不引入控制台、登录状态管理和后台轮询 |
 
-固定只读 `/bbs/app/link/tree` 接口。帖子与当前评论页来自同一响应，默认隐藏评论；用户需要时请求限定页。唯一直接依赖 htmlparser2 用于HTML实体和标签解析，避免以正则充当HTML解析器。依赖锁定见package-lock。
+阅读使用 `/bbs/app/link/tree` 接口。帖子与当前评论页来自同一响应，默认隐藏评论；用户需要时请求限定页。唯一直接依赖 htmlparser2 用于HTML实体和标签解析，避免以正则充当HTML解析器。依赖锁定见package-lock。
 
 限流/缓存是进程级，不跨进程共享；凭据哈希参与缓存键，配置变更不会混用不同登录态。未缓存错误，采用短暂退避。允许的图片CDN为 max-c.com、xiaoheihe.cn 的HTTPS子域，图片由宿主模型侧处理。
+
+0.2增加官方网页登录恢复与权限检查，回复使用固定comment/create端点；只读与发布分离。发布不是后台任务，不重试；凭据从宿主配置读取，短期pkey留内存，发送记录存仓库外。默认发布关闭，管理员启用才允许模型发布。

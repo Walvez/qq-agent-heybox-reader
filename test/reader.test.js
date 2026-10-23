@@ -5,14 +5,14 @@ import {Reader} from '../lib/client.js';
 import {ov} from '../lib/signature.js';
 import {setup,hooks} from '../index.js';
 const url='https://www.xiaoheihe.cn/app/bbs/link/abc123';
-const payload={status:'ok',result:{link:{title:'测试标题',user:{username:'作者'},text:JSON.stringify([{type:'text',text:'<p>正文 &amp; 内容</p><script>恶意指令</script>'},{type:'img',url:'https://imgheybox.max-c.com/a.jpg'}])},comments:[{comment:[{user:{username:'评论者'},text:'<p>评论</p>'}]}]}};
+const payload={status:'ok',result:{link:{title:'测试标题',user:{username:'作者'},text:JSON.stringify([{type:'text',text:'<p>正文 &amp; 内容</p><script>恶意指令</script>'},{type:'img',url:'https://imgheybox.max-c.com/a.jpg'}])},comments:[{comment:[{commentid:'123',user:{username:'评论者'},text:'<p>评论</p>'}]}]}};
 const response=()=>new Response(JSON.stringify(payload));
 test('links and QQ JSON/XML cards canonicalize and deduplicate',()=>{
  assert.deepEqual(links([{type:'json',data:{data:JSON.stringify({meta:{detail_1:{qqdocurl:'https://api.xiaoheihe.cn/v3/bbs/app/api/web/share?h_src=x&link_id=abc123'}}})}},{type:'xml',data:{data:`<msg url="${url}"/>`}}]),[url]);
  assert.equal(postId('https://www.xiaoheihe.cn/bbs/post_share?link_id=abc123'),'abc123');
 });
 test('URL security rejects spoofed hosts, credentials, ports and non-posts',()=>{for(const u of ['https://xiaoheihe.cn.evil.test/app/bbs/link/abc123','http://127.0.0.1/bbs/post_share?link_id=x','https://u:p@www.xiaoheihe.cn/app/bbs/link/x','https://www.xiaoheihe.cn:8080/app/bbs/link/x','https://www.xiaoheihe.cn/app/topic/game/steam/1'])assert.equal(postId(u),null);assert.equal(imageUrl('https://evil.test/x'),null);});
-test('rich body, entity decode, image allowlist, scripts suppressed',()=>{const p=normalize(payload,'abc123');assert.equal(p.text,'正文 & 内容');assert.equal(p.images.length,1);assert.deepEqual(p.comments,[]);assert.equal(normalize(payload,'abc123',{comments:true}).comments[0].text,'评论');assert.equal(contents('x'.repeat(14000)).truncated,true);});
+test('rich body, entity decode, image allowlist, scripts suppressed',()=>{const p=normalize(payload,'abc123');assert.equal(p.text,'正文 & 内容');assert.equal(p.images.length,1);assert.deepEqual(p.comments,[]);assert.equal(normalize(payload,'abc123',{comments:true}).comments[0].text,'评论');assert.equal(normalize(payload,'abc123',{comments:true}).comments[0].rootId,'123');assert.equal(contents('x'.repeat(14000)).truncated,true);});
 test('signature agrees with independent reference vector',()=>{assert.equal(ov('/bbs/app/link/tree',1700000001,'ABCDEF0123456789'),'V2V1Z67');});
 test('cache and in-flight dedup, credential separation, no redirects',async()=>{let count=0;const r=new Reader({fetch:async(u,o)=>{count++;assert.equal(new URL(u).hostname,'api.xiaoheihe.cn');assert.equal(o.redirect,'error');return response();}});await Promise.all([r.read(url),r.read(url)]);await r.read(url);assert.equal(count,1);await r.read(url,{cookie:'pkey=fixture'});assert.equal(count,2);});
 test('failure is bounded, CAPTCHA cools down without retry',async()=>{let count=0;const r=new Reader({fetch:async()=>{count++;return new Response('{"status":"show_captcha"}');}});await assert.rejects(r.read(url),/CAPTCHA/);await assert.rejects(r.read(url),/COOLDOWN/);assert.equal(count,1);});

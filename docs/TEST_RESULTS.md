@@ -9,3 +9,12 @@
 - 私有宿主图片兼容修改后的回归：37/37单元、18/18模拟QQ集成通过。
 - npm audit：0项已知漏洞；安装依赖7个包，磁盘约2.1MiB。
 - GitHub Actions 已配置 Node 20/22/24 离线单元测试（尚未推送运行）；当前本机验证 Node 26.12.0。
+
+
+## 0.2 登录/回复增量验证
+
+2026-10-23 复用用户授权的 Ego 登录态。匿名 restore_login 返回login；完整登录Cookie与仅user_pkey/user_heybox_id均返回ok。扩展 Account.status 实际识别账号，post_comment_permission为允许，草稿准备成功。Cookie和账号响应只保存在仓库外权限受限目录，未提交任何公开评论。
+
+当前18项单元测试全部通过，包括凭据白名单和脱敏、短期pkey内存续接、缺失登录/无权限、草稿零发送、发布开关、精确表单、楼中楼、回执、重启后防重、超时未知状态、错hash/账号变化/过期拒绝。两种真实宿主加载4个工具成功。
+
+发布格式依据官方网页当前公开JS：safe-route-xmtuYKc5.js 的 /bbs/app/comment/create；index-DZNUuPXv.js 的 is_cy/link_id/reply_id/root_id/text 表单和result.comment回执；主bundle的restore_login流程。只研究接口，不复制官方bundle到项目。真实发布尚未验证，不把模拟成功写成实发成功。

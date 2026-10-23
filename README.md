@@ -1,6 +1,6 @@
 # qq-agent-heybox-reader
 
-一个轻量 QQ-agent Skill：读小黑盒帖子，让机器人理解内容再参与讨论。MIT，Node.js 20+，无需浏览器、Python、数据库或本地模型。当前为 0.1.0 候选版，尚未公开发布。
+一个轻量 QQ-agent Skill：读小黑盒帖子，让机器人理解内容再参与讨论。MIT，Node.js 20+，无需浏览器、Python、数据库或本地模型。当前为 0.2.0 候选版，尚未公开发布。
 
 ## 能做什么
 
@@ -8,7 +8,7 @@
 - 读取标题、作者、正文、最多12张图片地址；视觉模型每次最多附3张图。
 - 按需读取评论，每页最多10条、最多请求第5页；不是完整评论归档。
 - 不发送 QQ 消息、不修改 JEV/唤醒规则、不自动转发全文。模型可以读完保持沉默。
-- 匿名优先；可选 Cookie。接口失败只给模型错误资料，聊天仍可继续。
+- 匿名优先；支持 Cookie 登录验证、评论权限检查、帖子回复及楼中楼回复。发布默认关闭，读取失败不影响聊天。
 
 ## 安装
 
@@ -39,13 +39,15 @@ QQ 卡片无需另一个工具：`url` 参数也可传整张卡片 JSON。提示
 
 控制台 Skill 设置：`attachImages` 默认开启；`cookie` 是可选密码字段。匿名遇到登录要求时，由管理员在本地控制台填写自己的 Cookie；也支持进程环境变量 `HEYBOX_COOKIE`。不要把 Cookie 发群里、写进仓库或命令历史。配置密码字段依赖宿主的脱敏机制。
 
+登录恢复会返回短期 API 凭据，扩展仅在内存使用，不返回给模型。浏览器中的 user_pkey 为 HttpOnly，document.cookie 可能取不到；不要误以为复制可见Cookie就足够。实测 user_pkey 与 user_heybox_id 可完成登录恢复，但不同账号或平台策略仍可能要求其他白名单字段。
+
 Cookie 只发到固定 `https://api.xiaoheihe.cn`，禁止重定向。不获取或绕过验证码。请求风控时退避60秒，不轮询其他接口绕过风控。清除 Cookie 请按宿主的秘密字段清除流程操作（部分宿主提交空串表示不修改）。
 
 ## 资源和限制
 
 10秒超时，响应上限1MiB，最多2个在途请求、每分钟6次；5分钟内存缓存最多32项，同请求合并。正文最多12000字符，图片只传URL不下载、不渲染、不OCR。视觉模型自身可能产生调用费用。无后台轮询或定时器。
 
-仅支持明确的帖子URL；不支持任意短链、游戏详情、登录、发帖、点赞或搜索。接口为非官方接口，可能变动；私密/删除帖子不会伪造成功。外部正文视为不可信资料，提示词提醒不能代替宿主权限控制。
+仅支持明确的帖子URL；不支持任意短链、游戏详情、账号密码登录、发表新帖、点赞或搜索。接口为非官方接口，可能变动；私密/删除帖子不会伪造成功。外部正文视为不可信资料，提示词提醒不能代替宿主权限控制。
 
 ## 开发与验证
 
@@ -59,3 +61,23 @@ npm run probe -- 'https://www.xiaoheihe.cn/app/bbs/link/帖子ID'
 `QQ_AGENT_DATA_DIR=<新建空目录> node scripts/host-check.js <QQ-agent源码路径>` 验证真实加载器。不要指向生产数据。
 
 [测试结果](docs/TEST_RESULTS.md) · [设计与开源参考](docs/DESIGN.md) · [第三方版权](THIRD_PARTY_NOTICES.md)
+
+## 登录与回复（0.2）
+
+工具：`heybox-reader__account` 检查登录，`heybox-reader__draft_reply` 准备草稿，`heybox-reader__publish_reply` 发布。后三者默认关闭，管理员可单独启用。发布还需要设置 `allowPublish=true`；这是允许模型使用该账号公开发评的开关，不仅是“已登录”。不开此开关也可以阅读、验证登录及准备草稿。
+
+草稿显示账号、目标帖子、正文、replyId/rootId和内容hash，30分钟有效。发布工具只接收草稿ID/hash，不接收临时改写的正文。楼中楼ID从读取评论结果获取。成功必须有commentId回执；网络超时或无回执标为unknown，不能自动重试或声称成功。
+
+持久化目录使用 `HEYBOX_STATE_DIR`，未设置时使用 `QQ_AGENT_DATA_DIR/heybox-reader`；都没有则拒绝写草稿，避免误落代码目录。单进程/多进程发送锁，每分钟最多1次、每天最多10次尝试，最多200份草稿；记录中不保存Cookie原文。发生崩溃留下.send-lock时，先核对网页和sending记录，再由管理员处理锁，不能盲目重发。
+
+也可以不启用模型发布，使用本地终端人工确认：
+
+```sh
+node scripts/account.js status --cookie-file /安全目录/heybox.cookie
+node scripts/account.js draft --cookie-file /安全目录/heybox.cookie --state-dir /安全目录/heybox-state --input /安全目录/reply.json
+node scripts/account.js send --cookie-file /安全目录/heybox.cookie --state-dir /安全目录/heybox-state --draft 草稿ID
+```
+
+reply.json 示例：`{"url":"原始帖子URL","text":"想回复的原文"}`。楼中楼增加 `replyId`、`rootId`。send 命令展示完整草稿，要求在交互终端输入SEND，不接受非交互自动批准。Cookie文件应为0600，不放仓库，不用命令行明文传Cookie。
+
+目前已真实验证登录、评论权限和草稿生成；发布请求只经过模拟测试，尚未对真实帖子发送。是否在服务器可用仍需对应网络出口实测。
