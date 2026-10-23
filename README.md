@@ -1,6 +1,6 @@
 # qq-agent-heybox-reader
 
-一个轻量 QQ-agent Skill：读小黑盒帖子，让机器人理解内容再参与讨论。MIT，Node.js 20+，无需浏览器、Python、数据库或本地模型。当前版本 0.3.0。
+一个轻量 QQ-agent Skill：读小黑盒帖子，让机器人理解内容再参与讨论。MIT，Node.js 20+，无需浏览器、Python、数据库或本地模型。当前版本 0.3.1。
 
 源码：https://github.com/Walvez/qq-agent-heybox-reader
 
@@ -85,3 +85,7 @@ node scripts/account.js send --cookie-file /安全目录/heybox.cookie --state-d
 reply.json 示例：`{"url":"原始帖子URL","text":"想回复的原文"}`。楼中楼增加 `replyId`、`rootId`。send 命令展示完整草稿，要求在交互终端输入SEND，不接受非交互自动批准。Cookie文件应为0600，不放仓库，不用命令行明文传Cookie。
 
 目前已真实验证登录、评论权限和草稿生成；发布请求只经过模拟测试，尚未对真实帖子发送。是否在服务器可用仍需对应网络出口实测。
+
+## 设置入口
+
+支持 settingsUi 的宿主中，在「设置 → 插件设置 → 小黑盒」集中管理阅读、登录和对外操作开关；修改后点击保存。Cookie留空保留现有凭据。工具授权仍在「工具与扩展」管理；不支持自定义设置页的旧宿主继续使用扩展详情表单。
