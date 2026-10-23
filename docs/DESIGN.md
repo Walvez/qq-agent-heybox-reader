@@ -15,3 +15,9 @@
 限流/缓存是进程级，不跨进程共享；凭据哈希参与缓存键，配置变更不会混用不同登录态。未缓存错误，采用短暂退避。允许的图片CDN为 max-c.com、xiaoheihe.cn 的HTTPS子域，图片由宿主模型侧处理。
 
 0.2增加官方网页登录恢复与权限检查，回复使用固定comment/create端点；只读与发布分离。发布不是后台任务，不重试；凭据从宿主配置读取，短期pkey留内存，发送记录存仓库外。默认发布关闭，管理员启用才允许模型发布。
+
+## 0.3 接口依据
+
+搜索参考 [dsh-xiaoheihe](https://github.com/plasta2steel/dsh-xiaoheihe) 的search_type=link与offset分页；游戏参考 [astrbot_plugin_multi_parser](https://github.com/Qfxaile/astrbot_plugin_multi_parser) 的get_game_detail方案，直接使用固定JSON接口，未引入其Python运行时。[nonebot_plugin_heybox_parser](https://github.com/Mzkena99/nonebot_plugin_heybox_parser) 保留作帖子解析参考。新增代码独立实现，既有签名版权说明保持。
+
+2026-10-24核对[小黑盒官方网页](https://www.xiaoheihe.cn/)公开客户端：index-BcnLlQNw的account/login手机号/密码RSA字段；index-BSaSF8Su的bbs/app/api/link/post表单和link_id回执；index-DZNUuPXv的bbs/app/profile/award/link、award_type=0/1。没有复制官方JS bundle或任何登录态进仓库。这些均为非官方、未承诺稳定的接口。
