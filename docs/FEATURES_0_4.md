@@ -124,3 +124,10 @@
 - `PROFILE_DISABLED`：管理员关闭了 `enableProfile`。
 - `RATE_LIMIT` / `COOLDOWN`：共享只读请求超过 6 次/分钟或处于退避期。
 - `MALFORMED` / `API_REJECTED`：接口返回结构或状态不符合预期；不回退到猜测或网页抓取。
+
+## 0.4.1 昵称查找与错误提示
+
+- profile / games 的 user 可直接传昵称：通过登录态用户搜索（/bbs/app/api/general/search/v1/web，search_type=user）找唯一的精确同名用户；同名多人返回 AMBIGUOUS_USER，找不到返回 USER_NOT_FOUND，二者都附最多 5 个候选，不猜测。
+- 目标不存在、同名或查无此人不再触发 1 分钟全局冷却。
+- 工具错误改为结构化 {error,hint,candidates}，只有 AUTH 提示登录失效。此前任何失败都附带“AUTH 需要管理员登录”，模型因此误报“登录过期”。
+- 生产登录态实测：昵称 tianfang 由用户搜索得到唯一精确匹配。

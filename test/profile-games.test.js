@@ -113,3 +113,46 @@ test('profile and games tools are enabled by default and enableProfile gates bot
   let calls=0;const blocked=[];setup({config:()=>({enableProfile:false}),fetch:async()=>{calls++;throw Error('unexpected');},registerTool:t=>blocked.push(t)});
   const disabled=await blocked.find(x=>x.id==='profile').execute({},{user:'90000001'});assert.equal(disabled.isError,true);assert.match(disabled.content,/PROFILE_DISABLED/);assert.equal(calls,0);
 });
+
+function nameMock(users,{rejectId=null}={}){
+  const base=mock();const calls=base.state.calls;
+  const fetch=async(url,options={})=>{
+    const u=new URL(url);
+    if(u.pathname==='/bbs/app/api/general/search/v1/web'){calls.push({u,options});assert.equal(u.searchParams.get('search_type'),'user');return json({status:'ok',result:{items:users.map(x=>({info:x}))}});}
+    if(rejectId&&u.pathname==='/bbs/app/profile/user/profile'&&u.searchParams.get('userid')===rejectId){calls.push({u,options});return json({status:'failed',msg:'参数错误'});}
+    return base.fetch(url,options);
+  };
+  return {state:base.state,fetch};
+}
+
+test('a nickname resolves through user search to the single exact match', async () => {
+  const m=nameMock([{userid:90000002,username:'TianFang'},{userid:90000003,username:'Tianfang 天放'}]);
+  const c=new Catalog({fetch:m.fetch});
+  const g=await c.games('tianfang',{cookie});
+  const list=m.state.calls.find(x=>x.u.pathname==='/account/game_list/');
+  assert.equal(list.u.searchParams.get('userid'),'90000002');
+  assert.equal(g.userId,'90000002');
+});
+
+test('ambiguous and unknown nicknames return candidates and never start the global cooldown', async () => {
+  const twin=nameMock([{userid:90000004,username:'小鱼'},{userid:90000005,username:'小鱼'}]);
+  const c=new Catalog({fetch:twin.fetch});
+  await assert.rejects(c.games('小鱼',{cookie}),e=>e.message==='AMBIGUOUS_USER'&&e.candidates.length===2);
+  const none=nameMock([{userid:90000006,username:'别人'}],{rejectId:'nobody'});
+  const c2=new Catalog({fetch:none.fetch});
+  await assert.rejects(c2.profile('nobody',{cookie}),e=>e.message==='USER_NOT_FOUND'&&e.candidates[0].nickname==='别人');
+  const p=await c2.profile('90000001',{cookie});
+  assert.equal(p.userId,'90000001','a failed lookup must not block the next request');
+});
+
+test('tool errors name the real cause and only AUTH mentions login', async () => {
+  const tools=[];const m=nameMock([],{rejectId:'ghost'});
+  setup({config:()=>({cookie}),fetch:m.fetch,registerTool:t=>tools.push(t)});
+  const games=tools.find(t=>t.id==='games');
+  const out=await games.execute({},{user:'ghost'});
+  assert.equal(out.isError,true);
+  const body=JSON.parse(out.content);
+  assert.equal(body.error,'USER_NOT_FOUND');
+  assert.doesNotMatch(out.content,/登录/);
+});
+
