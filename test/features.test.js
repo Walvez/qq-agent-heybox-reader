@@ -64,7 +64,7 @@ test('ambiguous post cannot be resent and action drafts cannot enter reply tool'
 test('new write tools disabled by default and independent config gates block all network',async()=>{
  const tools=[];let calls=0;setup({config:()=>({}),fetch:async()=>{calls++;throw Error('unexpected');},registerTool:t=>tools.push(t)});
  for(const id of ['publish_post','set_like']){const tool=tools.find(x=>x.id===id);assert.equal(tool.defaultEnabled,false);assert.equal((await tool.execute({},{})).isError,true);}
- assert.equal(calls,0);assert.equal(tools.length,10);
+ assert.equal(calls,0);assert.equal(tools.length,12);
 });
 test('post schema refuses invalid topic, huge payload and control characters',()=>{
  assert.throws(()=>postForm({title:'x',text:'ok',topicIds:['evil']}),/INVALID_POST/);

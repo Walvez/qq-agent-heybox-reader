@@ -1,6 +1,7 @@
 const switches=[
  ['enableSearch','帖子搜索','按关键词搜索小黑盒讨论，需要有效登录态。',true],
  ['enableGame','游戏详情','读取 PC / Steam 游戏简介、评分和价格。',true],
+ ['enableProfile','主页与游戏时长','查看公开主页、最近动态与游戏时长；空用户需要登录态。',true],
  ['attachImages','附带图片','将帖子图片交给宿主视觉模型；不保证当前模型能识图。',true],
  ['allowPublish','允许发布回复','允许使用小黑盒账号公开评论；还需在「工具与扩展」启用 publish_reply。',false],
  ['allowPost','允许发布新帖','允许公开发布纯文字新帖；还需启用 publish_post 工具。',false],
@@ -34,7 +35,7 @@ export async function render(ctx){
  <style>${HEYBOX_STYLE}</style>
  <div class="hb-head"><h2>小黑盒阅读与互动</h2><p>集中管理阅读、登录与互动权限。修改后点击「保存设置」。工具是否提供给模型，仍由「工具与扩展」管理。</p></div>
  <form data-heybox-form>
- <div class="hb-card"><h3>阅读能力</h3><div class="hb-toggle-grid">${switches.slice(0,3).map(x=>toggle(x,settings)).join('')}</div></div>
+ <div class="hb-card"><h3>阅读能力</h3><div class="hb-toggle-grid">${switches.slice(0,4).map(x=>toggle(x,settings)).join('')}</div></div>
  <div class="hb-card">
  <h3>账号登录</h3><p>沿用已保存的 Cookie；留空不会更换账号。手机号密码登录通过管理员终端脚本完成，密码不要填写在这里。</p>
  <div class="hb-field-grid">
@@ -44,7 +45,7 @@ export async function render(ctx){
  <p class="hint">文件方式优先于 Cookie，文件须位于运行机器、权限0600；清空路径可恢复使用 Cookie 字段。终端登录：<code>node scripts/login.js --output /安全路径/heybox.cookie</code></p>
  </div>
  <div class="hb-card"><h3>对外操作权限</h3><p>开启后，模型可使用该账号执行相应公开操作。准备草稿无需开启；需要每次人工确认时保持关闭，使用终端确认发送。</p>
- <div class="hb-toggle-grid">${switches.slice(3).map(x=>toggle(x,settings)).join('')}</div></div>
+ <div class="hb-toggle-grid">${switches.slice(4).map(x=>toggle(x,settings)).join('')}</div></div>
  <div class="hb-footer"><button type="submit" class="btn btn-primary">保存设置</button> <span class="hb-status" data-status role="status" aria-live="polite"></span></div>
  </form></section>`;
 }
